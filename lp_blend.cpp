@@ -1,3 +1,4 @@
+// Laplacian Pyramid Blending sample code.
 #include <iostream>
 #include <vector>
 #include <cv.h>
@@ -60,14 +61,19 @@ cv::Mat imread_32f(const std::string& name, int flag=1) {
 }
 
 int test_laplacian_pyramid(int argc, char* argv[]) {
+  if (argc != 3)
+    return -1;
+
   cv::Mat org = imread_32f(argv[1]);
 
   int div = 2;
   cv::Mat pic(org.rows/div, org.cols/div, CV_32FC3);
   cv::resize(org, pic, cv::Size(pic.cols, pic.rows));
 
+  int level = atoi(argv[2]);
   std::vector<cv::Mat> result;
-  LaplacianPyramid(pic, result, 5);
+  if (!LaplacianPyramid(pic, result, level))
+    return -1;
 
   cv::imshow("in", pic);
   for (unsigned int i=0; i<result.size(); ++i) {
@@ -76,7 +82,9 @@ int test_laplacian_pyramid(int argc, char* argv[]) {
   }
 
   cv::Mat reconstruct;
-  InverseLaplacianPyramid(result, reconstruct);
+  if (!InverseLaplacianPyramid(result, reconstruct))
+    return -1;
+
   cv::imshow("reconstruct", reconstruct);
   cv::waitKey(0);
 
@@ -84,18 +92,24 @@ int test_laplacian_pyramid(int argc, char* argv[]) {
 }
 
 int test_blend(int argc, char* argv[], bool verbose) {
-  // see the lecture note:
+  // reference:
   // http://graphics.cs.cmu.edu/courses/15-463/2005_fall/www/Lectures/Pyramids.pdf
+
+  if (argc != 5)
+    return -1;
 
   cv::Mat im1 = imread_32f(argv[1]);
   cv::Mat im2 = imread_32f(argv[2]);
   cv::Mat blend = imread_32f(argv[3]);
+  int level = atoi(argv[4]);
 
-  int level = 4;
   std::vector<cv::Mat> lap1, lap2, gaussian_blend;
-  LaplacianPyramid(im1, lap1, level);
-  LaplacianPyramid(im2, lap2, level);
-  GaussianPyramid(blend, gaussian_blend, level);
+  if (!LaplacianPyramid(im1, lap1, level))
+    return -1;
+  if (!LaplacianPyramid(im2, lap2, level))
+    return -1;
+  if (!GaussianPyramid(blend, gaussian_blend, level))
+    return -1;
 
   std::vector<cv::Mat> lap_blended;
   for (int i=0; i<level+1; ++i) {
@@ -111,7 +125,8 @@ int test_blend(int argc, char* argv[], bool verbose) {
   }
 
   cv::Mat blended;
-  InverseLaplacianPyramid(lap_blended, blended);
+  if (!InverseLaplacianPyramid(lap_blended, blended))
+    return -1;
 
   cv::imshow("blended", blended);
   cv::waitKey(0);
@@ -126,8 +141,8 @@ int main(int argc, char* argv[]) {
     << "Laplacian Pyramid Blending test." << endl
     << "usage: ./lp_blend demo_mode ... " << endl
     << "demo_mode:" << endl
-    << "  0 - ./lp_blend 0 image_file : test Laplacian pyramid" << endl
-    << "  1 - ./lp_blend 1 image_file1 image_file2 blend_file : blend two images" << endl
+    << "  0 - ./lp_blend 0 image_file level : test Laplacian pyramid" << endl
+    << "  1 - ./lp_blend 1 image_file1 image_file2 blend_file level : blend two images" << endl
     ;
 
   bool verbose = false;
